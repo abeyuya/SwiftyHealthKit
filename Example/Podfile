@@ -1,0 +1,12 @@
+use_frameworks!
+
+target 'SwiftyHealthKit_Example' do
+  pod 'SwiftyHealthKit', :path => '../'
+
+  target 'SwiftyHealthKit_Tests' do
+    inherit! :search_paths
+
+    pod 'Quick', '~> 0.8'
+  pod 'Nimble', '~> 3.0'
+  end
+end
