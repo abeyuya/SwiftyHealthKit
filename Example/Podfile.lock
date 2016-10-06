@@ -1,0 +1,22 @@
+PODS:
+  - Nimble (5.0.0)
+  - Quick (0.10.0)
+  - SwiftyHealthKit (0.1.0)
+
+DEPENDENCIES:
+  - Nimble (~> 5.0)
+  - Quick (~> 0.10)
+  - SwiftyHealthKit (from `../`)
+
+EXTERNAL SOURCES:
+  SwiftyHealthKit:
+    :path: "../"
+
+SPEC CHECKSUMS:
+  Nimble: 56fc9f5020effa2206de22c3dd910f4fb011b92f
+  Quick: 5d290df1c69d5ee2f0729956dcf0fd9a30447eaa
+  SwiftyHealthKit: 5136d1a1b2db9d65db9d6245eb5a3ba4cedf4ffc
+
+PODFILE CHECKSUM: 3e3dda6cd7b8f1a1d63be6e290fe30350e03e51f
+
+COCOAPODS: 1.1.0.rc.2
