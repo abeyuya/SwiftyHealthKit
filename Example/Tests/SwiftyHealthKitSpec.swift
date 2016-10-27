@@ -6,12 +6,14 @@ import SwiftyHealthKit
 import HealthKit
 
 class SwiftyHealthKitSpec: QuickSpec {
+    
     override func spec() {
         
         let shk = SwiftyHealthKit.shared
         
         beforeSuite {
-            shk.setup(share: [.stepCount], read: [])
+            let requireIDsForTest: [HKQuantityTypeIdentifier] = [.stepCount, .bodyMass]
+            shk.setup(share: requireIDsForTest, read: [])
             guard shk.shouldRequestAuthorization == false else {
                 fail("Need to authorize HealthKit permission before run test.")
                 return
@@ -65,17 +67,75 @@ class SwiftyHealthKitSpec: QuickSpec {
                             if case .failure(let error) = result {
                                 fail("\(error)")
                             }
-                            
-                            shk.stepCount(at: Date()) { result in
-                                switch result {
-                                case .failure(let error): fail("\(error)")
-                                case .success(let step): expect(step).to(equal(Int(10)))
-                                }
-                                done()
+                            done()
+                        }
+                    }
+                    
+                    waitUntil { done in
+                        shk.stepCount(at: Date()) { result in
+                            switch result {
+                            case .failure(let error): fail("\(error)")
+                            case .success(let step): expect(step).to(equal(Int(10)))
                             }
+                            done()
                         }
                     }
                 }
+            }
+        }
+        
+        describe("bodyMass") {
+            context("when no data") {
+                delete(id: .bodyMass)
+                waitUntil { done in
+                    shk.bodyMass(at: Date(), option: .discreteMax) { result in
+                        switch result {
+                        case .failure(let error): fail("\(error)")
+                        case .success(let quantity): expect(quantity).to(beNil())
+                        }
+                        done()
+                    }
+                }
+            }
+            
+            context("when 1 record") {
+                delete(id: .bodyMass)
+                it("should return the quantity") {
+                    let unit = HKUnit.gramUnit(with: .kilo)
+                    let quantity = HKQuantity(unit: unit, doubleValue: 60)
+                    
+                    waitUntil { done in
+                        shk.writeSample(at: Date(), id: .bodyMass, quantity: quantity) { result in
+                            if case .failure(let error) = result {
+                                fail("\(error)")
+                            }
+                            done()
+                        }
+                    }
+                    
+                    waitUntil { done in
+                        shk.bodyMass(at: Date(), option: .discreteMax) { result in
+                            switch result {
+                            case .failure(let error): fail("\(error)")
+                            case .success(let quantity):
+                                expect(quantity?.doubleValue(for: unit)).to(equal(Double(60)))
+                            }
+                            done()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private func delete(id: HKQuantityTypeIdentifier) {
+        waitUntil { done in
+            SwiftyHealthKit.shared.deleteData(at: Date(), id: .bodyMass) { result in
+                if case .failure(let error) = result {
+                    fail("\(error)")
+                }
+                it("") { expect(true).to(beTrue()) }
+                done()
             }
         }
     }
