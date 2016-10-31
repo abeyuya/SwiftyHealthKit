@@ -84,8 +84,7 @@ class SwiftyHealthKitSpec: QuickSpec {
             }
         }
         
-        describe("bodyMass") {
-            
+        describe("write bodyMass") {
             beforeEach {
                 waitUntil { done in
                     shk.deleteData(at: Date(), id: .bodyMass) { result in
@@ -137,6 +136,85 @@ class SwiftyHealthKitSpec: QuickSpec {
                     }
                 }
             }
+        }
+        
+        describe("overwrite bodyMass") {
+            beforeEach {
+                waitUntil { done in
+                    shk.deleteData(at: Date(), id: .bodyMass) { result in
+                        if case .failure(let error) = result {
+                            fail("\(error)")
+                        }
+                        done()
+                    }
+                }
+            }
+            
+            context("when no data") {
+                it("") {
+                    let unit = HKUnit.gramUnit(with: .kilo)
+                    let quantity = HKQuantity(unit: unit, doubleValue: 60)
+                    
+                    waitUntil { done in
+                        shk.overwriteSample(at: Date(), id: .bodyMass, quantity: quantity) { result in
+                            switch result {
+                            case .failure(let error): fail("\(error)")
+                            case .success(let success): expect(success).to(beTrue())
+                            }
+                            done()
+                        }
+                    }
+                    
+                    waitUntil { done in
+                        shk.quantity(at: Date(), id: .bodyMass, option: .discreteMax) { result in
+                            switch result {
+                            case .failure(let error): fail("\(error)")
+                            case .success(let quantity):
+                                expect(quantity?.doubleValue(for: unit)).to(equal(Double(60)))
+                            }
+                            done()
+                        }
+                    }
+                }
+            }
+            
+            context("when overwrite 1 record") {
+                it("should return the new record") {
+                    let unit = HKUnit.gramUnit(with: .kilo)
+                    let oldQuantity = HKQuantity(unit: unit, doubleValue: 60)
+                    
+                    waitUntil { done in
+                        shk.writeSample(at: Date(), id: .bodyMass, quantity: oldQuantity) { result in
+                            if case .failure(let error) = result {
+                                fail("\(error)")
+                            }
+                            done()
+                        }
+                    }
+                    
+                    let newQuantity = HKQuantity(unit: unit, doubleValue: 55)
+                    waitUntil { done in
+                        shk.overwriteSample(at: Date(), id: .bodyMass, quantity: newQuantity) { result in
+                            switch result {
+                            case .failure(let error): fail("\(error)")
+                            case .success(let success): expect(success).to(beTrue())
+                            }
+                            done()
+                        }
+                    }
+                    
+                    waitUntil { done in
+                        shk.quantity(at: Date(), id: .bodyMass, option: .discreteMax) { result in
+                            switch result {
+                            case .failure(let error): fail("\(error)")
+                            case .success(let quantity):
+                                expect(quantity?.doubleValue(for: unit)).to(equal(Double(55)))
+                            }
+                            done()
+                        }
+                    }
+                }
+            }           
         }
     }
 }

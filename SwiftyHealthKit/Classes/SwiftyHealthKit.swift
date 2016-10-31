@@ -19,23 +19,6 @@ public enum Result<T> {
     case failure(SHKError)
 }
 
-public enum SHKStatisticsOptions {
-    case discreteAverage
-    case discreteMax
-    case discreteMin
-    case cumulativeSum
-//    case separateBySource
-    
-    var origin: HKStatisticsOptions {
-        switch self {
-        case .discreteAverage: return HKStatisticsOptions.discreteAverage
-        case .discreteMax: return HKStatisticsOptions.discreteMax
-        case .discreteMin: return HKStatisticsOptions.discreteMin
-        case .cumulativeSum: return HKStatisticsOptions.cumulativeSum
-        }
-    }
-}
-
 public typealias Callback<T> = (Result<T>) -> Void
 
 public enum SHKError: Error {
@@ -62,6 +45,23 @@ public enum SHKError: Error {
             return SHKError.hkError(hkError)
         } else {
             return SHKError.error(error)
+        }
+    }
+}
+
+public enum SHKStatisticsOptions {
+    case discreteAverage
+    case discreteMax
+    case discreteMin
+    case cumulativeSum
+//    case separateBySource
+    
+    var origin: HKStatisticsOptions {
+        switch self {
+        case .discreteAverage: return HKStatisticsOptions.discreteAverage
+        case .discreteMax: return HKStatisticsOptions.discreteMax
+        case .discreteMin: return HKStatisticsOptions.discreteMin
+        case .cumulativeSum: return HKStatisticsOptions.cumulativeSum
         }
     }
 }
@@ -273,13 +273,19 @@ extension SwiftyHealthKit {
         store.execute(query)
     }
     
-    public func delete(item: HKSample, completion: @escaping Callback<Bool>) {
-        store.delete(item) { _, error in
-            if let error = error {
-                completion(Result.failure(SHKError.from(error)))
-                return
+    public func overwriteSample(at date: Date, id: HKQuantityTypeIdentifier, quantity: HKQuantity, metadata: [String: String]? = nil, completion: @escaping Callback<Bool>) {
+        
+        deleteData(at: date, id: id) { result in
+            switch result {
+            case .failure(let error): completion(Result.failure(error))
+            case .success(_):
+                self.writeSample(at: date, id: id, quantity: quantity, metadata: metadata) { result in
+                    switch result {
+                    case .failure(let error): completion(Result.failure(error))
+                    case .success(let success): completion(Result.success(success))
+                    }
+                }
             }
-            completion(Result.success(true))
         }
     }
     
