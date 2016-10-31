@@ -85,21 +85,33 @@ class SwiftyHealthKitSpec: QuickSpec {
         }
         
         describe("bodyMass") {
-            context("when no data") {
-                delete(id: .bodyMass)
+            
+            beforeEach {
                 waitUntil { done in
-                    shk.bodyMass(at: Date(), option: .discreteMax) { result in
-                        switch result {
-                        case .failure(let error): fail("\(error)")
-                        case .success(let quantity): expect(quantity).to(beNil())
+                    shk.deleteData(at: Date(), id: .bodyMass) { result in
+                        if case .failure(let error) = result {
+                            fail("\(error)")
                         }
                         done()
                     }
                 }
             }
             
+            context("when no data") {
+                it("") {
+                    waitUntil { done in
+                        shk.quantity(at: Date(), id: .bodyMass, option: .discreteMax) { result in
+                            switch result {
+                            case .failure(let error): fail("\(error)")
+                            case .success(let quantity): expect(quantity).to(beNil())
+                            }
+                            done()
+                        }
+                    }
+                }
+            }
+            
             context("when 1 record") {
-                delete(id: .bodyMass)
                 it("should return the quantity") {
                     let unit = HKUnit.gramUnit(with: .kilo)
                     let quantity = HKQuantity(unit: unit, doubleValue: 60)
@@ -114,7 +126,7 @@ class SwiftyHealthKitSpec: QuickSpec {
                     }
                     
                     waitUntil { done in
-                        shk.bodyMass(at: Date(), option: .discreteMax) { result in
+                        shk.quantity(at: Date(), id: .bodyMass, option: .discreteMax) { result in
                             switch result {
                             case .failure(let error): fail("\(error)")
                             case .success(let quantity):
@@ -124,18 +136,6 @@ class SwiftyHealthKitSpec: QuickSpec {
                         }
                     }
                 }
-            }
-        }
-    }
-    
-    private func delete(id: HKQuantityTypeIdentifier) {
-        waitUntil { done in
-            SwiftyHealthKit.shared.deleteData(at: Date(), id: .bodyMass) { result in
-                if case .failure(let error) = result {
-                    fail("\(error)")
-                }
-                it("") { expect(true).to(beTrue()) }
-                done()
             }
         }
     }

@@ -90,12 +90,13 @@ extension SwiftyHealthKit {
     public func requestHealthKitPermission(completion: @escaping Callback<Bool>) {
         store.requestAuthorization(
             toShare: types(identifiers: shareIdentifiers),
-            read: types(identifiers: readIdentifiers)) { success, error in
-                if let error = error {
-                    completion(Result.failure(SHKError.from(error)))
-                    return
-                }
-                completion(Result.success(success))
+            read: types(identifiers: readIdentifiers)
+        ) { success, error in
+            if let error = error {
+                completion(Result.failure(SHKError.from(error)))
+                return
+            }
+            completion(Result.success(success))
         }
     }
     
@@ -116,54 +117,17 @@ extension SwiftyHealthKit {
 extension SwiftyHealthKit {
     
     public func stepCount(at date: Date, completion: @escaping Callback<Int?>) {
-        statisticsCollection(at: date, id: .stepCount, option: .cumulativeSum) { result in
+        quantity(at: date, id: .stepCount, option: .cumulativeSum) { result in
             switch result {
             case .failure(let error): completion(Result.failure(error))
-            case .success(let collections):
-                guard let collections = collections else {
+            case .success(let quantity):
+                guard let quantity = quantity else {
                     completion(Result.success(nil))
                     return
                 }
                 
-                collections.enumerateStatistics(from: date, to: date) { results, _ in
-                    guard let stepDouble = results.sumQuantity()?.doubleValue(for: HKUnit.count()) else {
-                        completion(Result.success(nil))
-                        return
-                    }
-                    
-                    completion(Result.success(Int(stepDouble)))
-                }
-            }
-        }
-    }
-    
-    public func bodyMass(at date: Date, option: SHKStatisticsOptions, completion: @escaping Callback<HKQuantity?>) {
-        statisticsCollection(at: date, id: .bodyMass, option: option.origin) { result in
-            switch result {
-            case .failure(let error): completion(Result.failure(error))
-            case .success(let collections):
-                guard let collections = collections else {
-                    completion(Result.success(nil))
-                    return
-                }
-                
-                guard collections.statistics().count >= 1 else {
-                    // no data
-                    completion(Result.success(nil))
-                    return
-                }
-                
-                let quantity: HKQuantity? = {
-                    let statistics = collections.statistics().first
-                    switch option {
-                    case .discreteAverage: return statistics?.averageQuantity()
-                    case .discreteMax: return statistics?.maximumQuantity()
-                    case .discreteMin: return statistics?.minimumQuantity()
-                    case .cumulativeSum: return statistics?.sumQuantity()
-                    }
-                }()
-                
-                completion(Result.success(quantity))
+                let stepDouble = quantity.doubleValue(for: HKUnit.count())
+                completion(Result.success(Int(stepDouble)))
             }
         }
     }
@@ -189,7 +153,31 @@ extension SwiftyHealthKit {
         store.execute(query)
     }
     
-    public func statisticsCollection(at date: Date, id: HKQuantityTypeIdentifier, option: HKStatisticsOptions, completion: @escaping Callback<HKStatisticsCollection?>) {
+    public func quantity(at date: Date, id: HKQuantityTypeIdentifier, option: SHKStatisticsOptions, completion: @escaping Callback<HKQuantity?>) {
+        statistics(at: date, id: id, option: option.origin) { result in
+            switch result {
+            case .failure(let error): completion(Result.failure(error))
+            case .success(let statistics):
+                guard let statistics = statistics else {
+                    completion(Result.success(nil))
+                    return
+                }
+                
+                let quantity: HKQuantity? = {
+                    switch option {
+                    case .discreteAverage: return statistics.averageQuantity()
+                    case .discreteMax: return statistics.maximumQuantity()
+                    case .discreteMin: return statistics.minimumQuantity()
+                    case .cumulativeSum: return statistics.sumQuantity()
+                    }
+                }()
+                
+                completion(Result.success(quantity))
+            }
+        }
+    }
+    
+    public func statistics(at date: Date, id: HKQuantityTypeIdentifier, option: HKStatisticsOptions, completion: @escaping Callback<HKStatistics?>) {
         let cal = Calendar(identifier: .gregorian)
         var comp1 = cal.dateComponents([.day, .month, .year], from: date)
         comp1.hour = 0
@@ -205,13 +193,30 @@ extension SwiftyHealthKit {
             anchorDate: anchorDate,
             intervalComponents: comp2)
         
-        query.initialResultsHandler = { _, results, error in
+        query.initialResultsHandler = { _, collection, error in
             if let error = error {
                 completion(Result.failure(SHKError.from(error)))
                 return
             }
             
-            completion(Result.success(results))
+            guard let collection = collection else {
+                completion(Result.success(nil))
+                return
+            }
+            
+            let count = collection.statistics().count
+            guard count == 0 || count == 1 else {
+                assertionFailure("collection.statistics().count = \(collection.statistics().count)")
+                completion(Result.success(nil))
+                return
+            }
+            
+            guard let statistics = collection.statistics().first else {
+                completion(Result.success(nil))
+                return
+            }
+            
+            completion(Result.success(statistics))
         }
         store.execute(query)
     }
