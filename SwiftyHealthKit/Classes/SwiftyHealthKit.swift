@@ -274,16 +274,38 @@ extension SwiftyHealthKit {
     }
     
     public func delete(samples: [HKSample], completion: @escaping Callback<Bool>) {
-        if #available(iOS 9.0, *) {
-            self.store.delete(samples) { success, error in
-                if let error = error {
+        guard #available(iOS 9.0, *) else {
+            // NOTE: iOS8 support
+            let group = DispatchGroup()
+            var errors: [Error] = []
+            
+            for sample in samples {
+                let queue = DispatchQueue(label: "SwiftyHealthKit.parallelDelete")
+                queue.async(group: group) {
+                    self.store.delete(sample) { success, error in
+                        if let error = error {
+                            errors.append(error)
+                        }
+                    }
+                }
+            }
+            
+            group.notify(queue: DispatchQueue.main) {
+                if let error = errors.first {
                     completion(Result.failure(SHKError.from(error)))
                     return
                 }
-                completion(Result.success(success))
+                completion(Result.success(true))
             }
-        } else {
-            // TODO: iOS8 support
+            return
+        }
+        
+        self.store.delete(samples) { success, error in
+            if let error = error {
+                completion(Result.failure(SHKError.from(error)))
+                return
+            }
+            completion(Result.success(success))
         }
     }
     
