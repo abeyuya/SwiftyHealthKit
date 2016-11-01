@@ -126,8 +126,8 @@ extension SwiftyHealthKit {
                     return
                 }
                 
-                let stepDouble = quantity.doubleValue(for: HKUnit.count())
-                completion(Result.success(Int(stepDouble)))
+                let stepCount = quantity.doubleValue(for: HKUnit.count())
+                completion(Result.success(Int(stepCount)))
             }
         }
     }
@@ -178,6 +178,30 @@ extension SwiftyHealthKit {
     }
     
     public func statistics(at date: Date, id: HKQuantityTypeIdentifier, option: HKStatisticsOptions, completion: @escaping Callback<HKStatistics?>) {
+        
+        statisticsCollection(at: date, id: id, option: option) { result in
+            switch result {
+            case .failure(let error): completion(Result.failure(error))
+            case .success(let collection):
+                
+                guard let collection = collection else {
+                    completion(Result.success(nil))
+                    return
+                }
+                
+                guard collection.statistics().count > 0 else {
+                    completion(Result.success(nil))
+                    return
+                }
+                
+                collection.enumerateStatistics(from: date, to: date) { statistics, _ in
+                    completion(Result.success(statistics))
+                }
+            }
+        }
+    }
+    
+    public func statisticsCollection(at date: Date, id: HKQuantityTypeIdentifier, option: HKStatisticsOptions, completion: @escaping Callback<HKStatisticsCollection?>) {
         let cal = Calendar(identifier: .gregorian)
         var comp1 = cal.dateComponents([.day, .month, .year], from: date)
         comp1.hour = 0
@@ -198,26 +222,9 @@ extension SwiftyHealthKit {
                 completion(Result.failure(SHKError.from(error)))
                 return
             }
-            
-            guard let collection = collection else {
-                completion(Result.success(nil))
-                return
-            }
-            
-            let count = collection.statistics().count
-            guard count == 0 || count == 1 else {
-                assertionFailure("collection.statistics().count = \(collection.statistics().count)")
-                completion(Result.success(nil))
-                return
-            }
-            
-            guard let statistics = collection.statistics().first else {
-                completion(Result.success(nil))
-                return
-            }
-            
-            completion(Result.success(statistics))
+            completion(Result.success(collection))
         }
+        
         store.execute(query)
     }
     
