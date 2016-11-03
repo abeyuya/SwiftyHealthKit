@@ -23,12 +23,11 @@ class ViewController: UIViewController {
     }
 
     @IBAction func tapAuthButton(_ sender: AnyObject) {
-        let shk = SwiftyHealthKit.shared
         let requireIDsForTest: [HKQuantityTypeIdentifier] = [.stepCount, .bodyMass]
         
-        shk.setup(share: requireIDsForTest, read: [])
-        if shk.shouldRequestAuthorization {
-            shk.requestHealthKitPermission() { result in
+        SwiftyHealthKit.setup(share: requireIDsForTest, read: [])
+        if SwiftyHealthKit.shouldRequestAuthorization {
+            SwiftyHealthKit.requestHealthKitPermission() { result in
                 switch result {
                 case .failure(let error): print("\(error)")
                 case .success(let success): print(success)

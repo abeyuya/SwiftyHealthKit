@@ -72,8 +72,8 @@ public class SwiftyHealthKit {
     // Singleton
     // http://stackoverflow.com/questions/35591466/create-singleton-instance-via-extension-per-app
     //
-    public static let shared = SwiftyHealthKit()
     private init() {}
+    fileprivate static let shared = SwiftyHealthKit()
     public let store = HKHealthStore()
     
     fileprivate var writeIdentifiers: [HKQuantityTypeIdentifier] = []
@@ -82,20 +82,20 @@ public class SwiftyHealthKit {
 
 extension SwiftyHealthKit {
     
-    public func setup(share: [HKQuantityTypeIdentifier], read: [HKQuantityTypeIdentifier]) {
-        writeIdentifiers = share
-        readIdentifiers = read
+    public static func setup(share: [HKQuantityTypeIdentifier], read: [HKQuantityTypeIdentifier]) {
+        shared.writeIdentifiers = share
+        shared.readIdentifiers = read
     }
     
-    public func requestHealthKitPermission(completion: @escaping Callback<Bool>) {
-        guard (writeIdentifiers + readIdentifiers).count > 0 else {
+    public static func requestHealthKitPermission(completion: @escaping Callback<Bool>) {
+        guard (shared.writeIdentifiers + shared.readIdentifiers).count > 0 else {
             debugCrash(message: "You should set shareIdentifiers or readIdentifiers --- Must request authorization for at least one data type")
             return
         }
         
-        store.requestAuthorization(
-            toShare: types(identifiers: writeIdentifiers),
-            read: types(identifiers: readIdentifiers)
+        shared.store.requestAuthorization(
+            toShare: types(identifiers: shared.writeIdentifiers),
+            read: types(identifiers: shared.readIdentifiers)
         ) { success, error in
             if let error = error {
                 completion(Result.failure(SHKError.from(error)))
@@ -105,21 +105,21 @@ extension SwiftyHealthKit {
         }
     }
     
-    private func types(identifiers: [HKQuantityTypeIdentifier]) -> Set<HKQuantityType> {
+    private static func types(identifiers: [HKQuantityTypeIdentifier]) -> Set<HKQuantityType> {
         var set = Set<HKQuantityType>()
         for id in identifiers { set.insert(id.type) }
         return set
     }
     
-    public var shouldRequestAuthorization: Bool {
-        let statuses = (writeIdentifiers + readIdentifiers).map { store.authorizationStatus(for: $0.type) }
+    public static var shouldRequestAuthorization: Bool {
+        let statuses = (shared.writeIdentifiers + shared.readIdentifiers).map { shared.store.authorizationStatus(for: $0.type) }
         return statuses.filter { $0 == .notDetermined }.count > 0
     }
 }
 
 extension SwiftyHealthKit {
     
-    public func stepCount(at date: Date, completion: @escaping Callback<Int?>) {
+    public static func stepCount(at date: Date, completion: @escaping Callback<Int?>) {
         quantity(at: date, id: .stepCount, option: .cumulativeSum) { result in
             switch result {
             case .failure(let error): completion(Result.failure(error))
@@ -138,7 +138,7 @@ extension SwiftyHealthKit {
 
 extension SwiftyHealthKit {
     
-    public func samples(at date: Date, id: HKQuantityTypeIdentifier, completion: @escaping Callback<[HKSample]?>) {
+    public static func samples(at date: Date, id: HKQuantityTypeIdentifier, completion: @escaping Callback<[HKSample]?>) {
         let query = HKSampleQuery(
             sampleType: id.type,
             predicate: predicateForOneDay(date: date),
@@ -152,10 +152,10 @@ extension SwiftyHealthKit {
                 completion(Result.success(samples))
             }
         )
-        store.execute(query)
+        shared.store.execute(query)
     }
     
-    public func quantity(at date: Date, id: HKQuantityTypeIdentifier, option: SHKStatisticsOptions, completion: @escaping Callback<HKQuantity?>) {
+    public static func quantity(at date: Date, id: HKQuantityTypeIdentifier, option: SHKStatisticsOptions, completion: @escaping Callback<HKQuantity?>) {
         statistics(at: date, id: id, option: option.origin) { result in
             switch result {
             case .failure(let error): completion(Result.failure(error))
@@ -179,7 +179,7 @@ extension SwiftyHealthKit {
         }
     }
     
-    private func statistics(at date: Date, id: HKQuantityTypeIdentifier, option: HKStatisticsOptions, completion: @escaping Callback<HKStatistics?>) {
+    private static func statistics(at date: Date, id: HKQuantityTypeIdentifier, option: HKStatisticsOptions, completion: @escaping Callback<HKStatistics?>) {
         statisticsCollection(at: date, id: id, option: option) { result in
             switch result {
             case .failure(let error): completion(Result.failure(error))
@@ -201,7 +201,7 @@ extension SwiftyHealthKit {
         }
     }
     
-    private func statisticsCollection(at date: Date, id: HKQuantityTypeIdentifier, option: HKStatisticsOptions, completion: @escaping Callback<HKStatisticsCollection?>) {
+    private static func statisticsCollection(at date: Date, id: HKQuantityTypeIdentifier, option: HKStatisticsOptions, completion: @escaping Callback<HKStatisticsCollection?>) {
         let cal = Calendar(identifier: .gregorian)
         var comp1 = cal.dateComponents([.day, .month, .year], from: date)
         comp1.hour = 0
@@ -225,10 +225,10 @@ extension SwiftyHealthKit {
             completion(Result.success(collection))
         }
         
-        store.execute(query)
+        shared.store.execute(query)
     }
     
-    public func writeSample(at time: Date, id: HKQuantityTypeIdentifier, quantity: HKQuantity, metadata: [String: String]? = nil, completion: @escaping Callback<Bool>) {
+    public static func writeSample(at time: Date, id: HKQuantityTypeIdentifier, quantity: HKQuantity, metadata: [String: String]? = nil, completion: @escaping Callback<Bool>) {
         let sample = HKQuantitySample(
             type: id.type,
             quantity: quantity,
@@ -236,7 +236,7 @@ extension SwiftyHealthKit {
             end: time,
             metadata: metadata)
         
-        store.save(sample) { success, error in
+        shared.store.save(sample) { success, error in
             if let error = error {
                 completion(Result.failure(SHKError.from(error)))
                 return
@@ -245,7 +245,7 @@ extension SwiftyHealthKit {
         }
     }
     
-    public func deleteData(at date: Date, id: HKQuantityTypeIdentifier, completion: @escaping Callback<Bool>) {
+    public static func deleteData(at date: Date, id: HKQuantityTypeIdentifier, completion: @escaping Callback<Bool>) {
         let query = HKSampleQuery(
             sampleType: id.type,
             predicate: predicateForOneDay(date: date),
@@ -262,13 +262,13 @@ extension SwiftyHealthKit {
                     return
                 }
                 
-                self.delete(samples: items, completion: completion)
+                delete(samples: items, completion: completion)
             }
         )
-        store.execute(query)
+        shared.store.execute(query)
     }
     
-    public func delete(samples: [HKSample], completion: @escaping Callback<Bool>) {
+    public static func delete(samples: [HKSample], completion: @escaping Callback<Bool>) {
         guard #available(iOS 9.0, *) else {
             // NOTE: iOS8 support
             let group = DispatchGroup()
@@ -277,7 +277,7 @@ extension SwiftyHealthKit {
             for sample in samples {
                 let queue = DispatchQueue(label: "SwiftyHealthKit.parallelDelete")
                 queue.async(group: group) {
-                    self.store.delete(sample) { success, error in
+                    shared.store.delete(sample) { success, error in
                         if let error = error {
                             errors.append(error)
                         }
@@ -295,7 +295,7 @@ extension SwiftyHealthKit {
             return
         }
         
-        self.store.delete(samples) { success, error in
+        shared.store.delete(samples) { success, error in
             if let error = error {
                 completion(Result.failure(SHKError.from(error)))
                 return
@@ -304,7 +304,7 @@ extension SwiftyHealthKit {
         }
     }
     
-    public func overwriteSample(at date: Date, id: HKQuantityTypeIdentifier, quantity: HKQuantity, metadata: [String: String]? = nil, completion: @escaping Callback<Bool>) {
+    public static func overwriteSample(at date: Date, id: HKQuantityTypeIdentifier, quantity: HKQuantity, metadata: [String: String]? = nil, completion: @escaping Callback<Bool>) {
         deleteData(at: date, id: id) { result in
             switch result {
             case .failure(let error): completion(Result.failure(error))
@@ -319,7 +319,7 @@ extension SwiftyHealthKit {
         }
     }
     
-    fileprivate func predicateForOneDay(date: Date) -> NSPredicate {
+    fileprivate static func predicateForOneDay(date: Date) -> NSPredicate {
         return HKQuery.predicateForSamples(
             withStart: date.startOfDay,
             end: date.endOfDay,
@@ -328,7 +328,7 @@ extension SwiftyHealthKit {
 }
 
 fileprivate extension SwiftyHealthKit {
-    fileprivate func debugCrash(message: String) {
+    static func debugCrash(message: String) {
         assertionFailure([
             "",
             "------------",
