@@ -72,7 +72,7 @@ public class SwiftyHealthKit {
     // Singleton
     // http://stackoverflow.com/questions/35591466/create-singleton-instance-via-extension-per-app
     //
-    open static let shared = SwiftyHealthKit()
+    public static let shared = SwiftyHealthKit()
     private init() {}
     public let store = HKHealthStore()
     
@@ -107,9 +107,7 @@ extension SwiftyHealthKit {
     
     private func types(identifiers: [HKQuantityTypeIdentifier]) -> Set<HKQuantityType> {
         var set = Set<HKQuantityType>()
-        for id in identifiers {
-            set.insert(id.type)
-        }
+        for id in identifiers { set.insert(id.type) }
         return set
     }
     
@@ -182,12 +180,10 @@ extension SwiftyHealthKit {
     }
     
     private func statistics(at date: Date, id: HKQuantityTypeIdentifier, option: HKStatisticsOptions, completion: @escaping Callback<HKStatistics?>) {
-        
         statisticsCollection(at: date, id: id, option: option) { result in
             switch result {
             case .failure(let error): completion(Result.failure(error))
             case .success(let collection):
-                
                 guard let collection = collection else {
                     completion(Result.success(nil))
                     return
@@ -250,26 +246,25 @@ extension SwiftyHealthKit {
     }
     
     public func deleteData(at date: Date, id: HKQuantityTypeIdentifier, completion: @escaping Callback<Bool>) {
-        let resultsHandler = { (_: HKSampleQuery, samples: [HKSample]?, error: Error?) in
-            if let error = error {
-                completion(Result.failure(SHKError.from(error)))
-                return
-            }
-            guard let items = (samples?.filter { date.isInSameDay(at: $0.startDate) }), items.count > 0 else {
-                // Nothing to delete
-                completion(Result.success(true))
-                return
-            }
-            
-            self.delete(samples: items, completion: completion)
-        }
-        
         let query = HKSampleQuery(
             sampleType: id.type,
             predicate: predicateForOneDay(date: date),
             limit: HKObjectQueryNoLimit,
             sortDescriptors: nil,
-            resultsHandler: resultsHandler)
+            resultsHandler: { _, samples, error in
+                if let error = error {
+                    completion(Result.failure(SHKError.from(error)))
+                    return
+                }
+                guard let items = (samples?.filter { date.isInSameDay(at: $0.startDate) }), items.count > 0 else {
+                    // Nothing to delete
+                    completion(Result.success(true))
+                    return
+                }
+                
+                self.delete(samples: items, completion: completion)
+            }
+        )
         store.execute(query)
     }
     
@@ -310,7 +305,6 @@ extension SwiftyHealthKit {
     }
     
     public func overwriteSample(at date: Date, id: HKQuantityTypeIdentifier, quantity: HKQuantity, metadata: [String: String]? = nil, completion: @escaping Callback<Bool>) {
-        
         deleteData(at: date, id: id) { result in
             switch result {
             case .failure(let error): completion(Result.failure(error))
@@ -329,8 +323,7 @@ extension SwiftyHealthKit {
         return HKQuery.predicateForSamples(
             withStart: date.startOfDay,
             end: date.endOfDay,
-            options: .strictStartDate
-        )
+            options: .strictStartDate)
     }
 }
 
