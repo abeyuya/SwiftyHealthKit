@@ -7,18 +7,52 @@
 
 ## Example
 
-To run the example project, clone the repo, and run `pod install` from the Example directory first.
+```swift
+SwiftyHealthKit.shared.stepCount(at: Date()) { result in
+    switch result {
+    case .failure(let error): print("\(error)")
+    case .success(let step): print("Steps of today: \(step)")
+    }
+}
+```
+
+```swift
+SwiftyHealthKit.shared.quantity(at: Date(), id: .bodyMass, option: .discreteMax) { result in
+    switch result {
+    case .failure(let error): print("\(error)")
+    case .success(let quantity):
+        guard let quantity = quantity else {
+            // No bodymass data for today
+            return
+        }
+        
+        let kilogram = quantity.doubleValue(for: HKUnit.gramUnit(with: .kilo))
+        print("Max bodymass of today: \(kilogram)kg")
+        
+        let pound = quantity.doubleValue(for: HKUnit.pounds())
+        print("Max bodymass of today: \(pound)lb")
+    }
+}
+```
+
 
 ## Requirements
 
+- Xcode8+
+- Swift3+
+- iOS8.0+
+
 ## Installation
 
-SwiftyHealthKit is available through [CocoaPods](http://cocoapods.org). To install
-it, simply add the following line to your Podfile:
+### CocoaPods
 
 ```ruby
-pod "SwiftyHealthKit"
+pod 'SwiftyHealthKit', git: 'https://github.com/abeyuya/SwiftyHealthKit'
 ```
+
+### Carthage
+
+TODO
 
 ## Author
 
