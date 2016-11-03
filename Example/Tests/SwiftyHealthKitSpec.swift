@@ -38,7 +38,7 @@ class SwiftyHealthKitSpec: QuickSpec {
             }
             
             context("when no data") {
-                it("should be nil") {
+                it("should return nil") {
                     waitUntil { done in
                         shk.stepCount(at: Date()) { result in
                             switch result {
@@ -83,7 +83,7 @@ class SwiftyHealthKitSpec: QuickSpec {
             }
             
             context("when no data") {
-                it("") {
+                it("should return nil") {
                     waitUntil { done in
                         shk.quantity(at: Date(), id: .bodyMass, option: .discreteMax) { result in
                             switch result {
@@ -96,8 +96,8 @@ class SwiftyHealthKitSpec: QuickSpec {
                 }
             }
             
-            context("when 1 record") {
-                it("should return the quantity") {
+            context("when write 60kg") {
+                it("should return 60kg") {
                     let unit = HKUnit.gramUnit(with: .kilo)
                     let quantity = HKQuantity(unit: unit, doubleValue: 60)
                     
@@ -130,7 +130,7 @@ class SwiftyHealthKitSpec: QuickSpec {
             }
             
             context("when no data") {
-                it("") {
+                it("should return first record data") {
                     let unit = HKUnit.gramUnit(with: .kilo)
                     let quantity = HKQuantity(unit: unit, doubleValue: 60)
                     

@@ -76,25 +76,25 @@ public class SwiftyHealthKit {
     private init() {}
     public let store = HKHealthStore()
     
-    fileprivate var shareIdentifiers: [HKQuantityTypeIdentifier] = []
+    fileprivate var writeIdentifiers: [HKQuantityTypeIdentifier] = []
     fileprivate var readIdentifiers: [HKQuantityTypeIdentifier] = []
 }
 
 extension SwiftyHealthKit {
     
     public func setup(share: [HKQuantityTypeIdentifier], read: [HKQuantityTypeIdentifier]) {
-        shareIdentifiers = share
+        writeIdentifiers = share
         readIdentifiers = read
     }
     
     public func requestHealthKitPermission(completion: @escaping Callback<Bool>) {
-        guard (shareIdentifiers + readIdentifiers).count > 0 else {
+        guard (writeIdentifiers + readIdentifiers).count > 0 else {
             debugCrash(message: "You should set shareIdentifiers or readIdentifiers --- Must request authorization for at least one data type")
             return
         }
         
         store.requestAuthorization(
-            toShare: types(identifiers: shareIdentifiers),
+            toShare: types(identifiers: writeIdentifiers),
             read: types(identifiers: readIdentifiers)
         ) { success, error in
             if let error = error {
@@ -112,7 +112,7 @@ extension SwiftyHealthKit {
     }
     
     public var shouldRequestAuthorization: Bool {
-        let statuses = (shareIdentifiers + readIdentifiers).map { store.authorizationStatus(for: $0.type) }
+        let statuses = (writeIdentifiers + readIdentifiers).map { store.authorizationStatus(for: $0.type) }
         return statuses.filter { $0 == .notDetermined }.count > 0
     }
 }
