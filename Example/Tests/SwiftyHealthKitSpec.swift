@@ -34,14 +34,7 @@ class SwiftyHealthKitSpec: QuickSpec {
         
         describe("stepCount") {
             beforeEach {
-                waitUntil { done in
-                    shk.deleteData(at: Date(), id: .stepCount) { result in
-                        if case .failure(let error) = result {
-                            fail("\(error)")
-                        }
-                        done()
-                    }
-                }
+                SwiftyHealthKitSpec.delete(id: .stepCount)
             }
             
             context("when no data") {
@@ -86,14 +79,7 @@ class SwiftyHealthKitSpec: QuickSpec {
         
         describe("write bodyMass") {
             beforeEach {
-                waitUntil { done in
-                    shk.deleteData(at: Date(), id: .bodyMass) { result in
-                        if case .failure(let error) = result {
-                            fail("\(error)")
-                        }
-                        done()
-                    }
-                }
+                SwiftyHealthKitSpec.delete(id: .bodyMass)
             }
             
             context("when no data") {
@@ -140,14 +126,7 @@ class SwiftyHealthKitSpec: QuickSpec {
         
         describe("overwrite bodyMass") {
             beforeEach {
-                waitUntil { done in
-                    shk.deleteData(at: Date(), id: .bodyMass) { result in
-                        if case .failure(let error) = result {
-                            fail("\(error)")
-                        }
-                        done()
-                    }
-                }
+                SwiftyHealthKitSpec.delete(id: .bodyMass)
             }
             
             context("when no data") {
@@ -216,5 +195,19 @@ class SwiftyHealthKitSpec: QuickSpec {
                 }
             }           
         }
+    }
+}
+
+extension SwiftyHealthKitSpec {
+    
+    fileprivate static func delete(id: HKQuantityTypeIdentifier) {
+        waitUntil { done in
+            SwiftyHealthKit.shared.deleteData(at: Date(), id: id) { result in
+                if case .failure(let error) = result {
+                    fail("\(error)")
+                }
+                done()
+            }
+        }       
     }
 }
