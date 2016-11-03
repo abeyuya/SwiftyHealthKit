@@ -29,7 +29,7 @@ SwiftyHealthKit.shared.quantity(at: Date(), id: .bodyMass, option: .discreteMax)
         let kilogram = quantity.doubleValue(for: HKUnit.gramUnit(with: .kilo))
         print("Max bodymass of today: \(kilogram)kg")
         
-        let pound = quantity.doubleValue(for: HKUnit.pounds())
+        let pound = quantity.doubleValue(for: HKUnit.pound())
         print("Max bodymass of today: \(pound)lb")
     }
 }
