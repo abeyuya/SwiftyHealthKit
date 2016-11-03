@@ -90,6 +90,7 @@ extension SwiftyHealthKit {
     public static func requestHealthKitPermission(completion: @escaping Callback<Bool>) {
         guard (shared.writeIdentifiers + shared.readIdentifiers).count > 0 else {
             debugCrash(message: "You should set shareIdentifiers or readIdentifiers --- Must request authorization for at least one data type")
+            completion(Result.failure(SHKError.from(NSError())))
             return
         }
         
